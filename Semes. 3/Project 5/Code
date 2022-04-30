@@ -1,0 +1,169 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <sstream>
+
+#include <filesystem>
+#include <conio.h>
+using namespace std;
+namespace fs = std::filesystem;
+
+struct scanInfo
+{
+	string model;    // наименование модели
+	int price;       // цена
+	double _xSize;   // горизонтальный размер области сканирования
+	double _ySize;   // вертикальный размер области сканирования
+	int optr;        // оптическое разрешение
+	int grey;        // число градаций серого
+};
+
+int n = 0;
+vector<scanInfo*> database;
+
+// Основные процедуры
+void readInput_scanInfoDatabase();   // Считывание базы данных с клавиатуры   +++
+void readBase_scanInfoDatabase();    // Считывание базы данных с архива       +++
+void write_scanInfoDatabase();       // Записать базу данных в архив          +++
+// Вспомогательные процедуры
+int Test_Recording(int n);           // Выводит -1, если записи под номером n не существует, иначе 0
+void CreateFolder();                 // Создает папку                         +++
+void Print_scanInfoDatabase();       // Печать scanInfo
+
+int main()
+{
+	setlocale(LC_ALL, "ru");
+	//readInput_scanInfoDatabase();
+	/*write_scanInfoDatabase();*/
+
+	/*readBase_scanInfoDatabase();
+	readBase_scanInfoDatabase();
+	readBase_scanInfoDatabase();
+
+	Print_scanInfoDatabase();*/
+	cout << Test_Recording(3);
+	_getch();
+}
+
+void readInput_scanInfoDatabase()
+{
+	int _n;
+	cout << "Введите количество строк данных: ";
+	cin >> _n;
+	cout << "Вводите данные об одном сканере в одну строку, в качестве разделителей использовать ';' (Внимание! Без кавычек.) (Без пробелов)\nВид: 'Наименование модели';'Цена';'Горизонтальное сканирование';'Вертикальное сканирование';'Разрешение';'Градация'\n";
+	
+	string s;
+	for (int i = 0; i < _n; i++)
+	{
+		cin >> s;
+		stringstream str(s);
+		string model, price, x, y, optr, grey;
+
+		getline(str, model, ';');
+		getline(str, price, ';');
+		getline(str, x, ';');
+		getline(str, y, ';');
+		getline(str, optr, ';');
+		getline(str, grey, ';');
+
+		scanInfo* scan = new scanInfo;
+		scan->model = model;
+		scan->price = stoi(price);
+		scan->_xSize = stod(x);
+		scan->_ySize = stod(y);
+		scan->optr = stoi(optr);
+		scan->grey = stoi(grey);
+		database.push_back(scan);
+	}
+	n = n + _n;
+}
+void readBase_scanInfoDatabase()
+{
+	ifstream f("database\\Base_scanInfo.txt", ios::in | ios::binary);
+	if (f.is_open())
+	{
+		int _n = 0;
+		f.read((char*)&_n, sizeof(_n));
+		for (int i = 0; i < _n; i++)
+		{
+			scanInfo* scan = new scanInfo;
+			f.read((char*)&scan->model, sizeof(string));
+			f.read((char*)&scan->price, sizeof(int));
+			f.read((char*)&scan->_xSize, sizeof(double));
+			f.read((char*)&scan->_ySize, sizeof(double));
+			f.read((char*)&scan->optr, sizeof(int));
+			f.read((char*)&scan->grey, sizeof(int));
+			database.push_back(scan);
+		}
+		n = n + _n;
+		f.close();
+	}
+	else
+		cout << "Ошибка: Не удалось прочитать файл.\n";
+}
+void write_scanInfoDatabase()
+{
+	ofstream f("database\\Base_scanInfo.txt", ios::out | ios::binary);
+	if (f.is_open())
+	{
+		f.write((char*)&n, sizeof(n));
+		for (int i = 0; i < n; i++)
+		{
+			f.write((char*)&database[i]->model, sizeof(string));
+			f.write((char*)&database[i]->price, sizeof(int));
+			f.write((char*)&database[i]->_xSize, sizeof(double));
+			f.write((char*)&database[i]->_ySize, sizeof(double));
+			f.write((char*)&database[i]->optr, sizeof(int));
+			f.write((char*)&database[i]->grey, sizeof(int));
+		}
+		for (n; n > 0; n--)
+		{
+			delete database[n - 1];
+		}
+		database.clear();
+		f.close();
+	}
+	else
+		cout << "Ошибка: Не удалось записать файл.";
+}
+
+int Test_Recording(int n)
+{
+	ifstream f("database\\Base_scanInfo.txt", ios::in | ios::binary);
+	if (f.is_open())
+	{
+		f.seekg(4 + (sizeof(string) + 2 * sizeof(double) + 3 * sizeof(int)) * n);
+
+		char test;
+		if (f.get(test))
+			return 0;
+
+		/*scanInfo* scan = new scanInfo;
+		f.read((char*)&scan->model, sizeof(string));
+		f.read((char*)&scan->price, sizeof(int));
+		f.read((char*)&scan->_xSize, sizeof(double));
+		f.read((char*)&scan->_ySize, sizeof(double));
+		f.read((char*)&scan->optr, sizeof(int));
+		f.read((char*)&scan->grey, sizeof(int));
+
+		cout << "Модель: " << scan->model << "          Цена: " << scan->price
+			<< "\n     Разрешение: " << scan->optr << "          Градиент: " << scan->grey
+			<< "\n     Зона сканирования: " << scan->_xSize << "/" << scan->_ySize << endl;*/
+	}
+	return -1;
+}
+void CreateFolder()
+{
+	fs::create_directories("database");
+}
+void Print_scanInfoDatabase()
+{
+	cout << "\nЗаписей: " << n << endl;
+	_getch();
+	for (int i = 0; i < n; i++)
+	{
+		cout << "Модель: " << database[i]->model << "          Цена: " << database[i]->price
+			<< "\n     Разрешение: " << database[i]->optr << "          Градиент: " << database[i]->grey
+			<< "\n     Зона сканирования: " << database[i]->_xSize << "/" << database[i]->_ySize << endl;
+	}
+}
