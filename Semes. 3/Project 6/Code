@@ -1,0 +1,263 @@
+#include <iostream>
+#include <vector>
+#include <string>
+using namespace std;
+
+class Product
+{
+public:
+    // Конструктор
+    Product(const string& name, size_t price, size_t count):
+        _name(name), _price(price), _count(count)
+    {}
+    // Конструктор копирования
+    Product(const Product& product):
+        _name(product._name), _price(product._price), _count(product._count)
+    {}
+    ~Product(){}
+    inline bool operator==(const Product& other)
+    {
+        return _name == other._name;
+    }
+
+    // Функции типа: get
+    string getName();    // Получить имя товара
+    size_t getPrice();   // Получить цену товара
+    size_t getCount();   // Получить количество товара на складе
+
+    // Функции типа: set
+    void setPrice(size_t price);   // Изменение цены
+    void delivery(size_t count);    // Завоз товара
+    void write_off(size_t count);   // Списание товара
+
+    // Функции типа: is
+    bool isProduct(size_t count);   // Проверка наличие товара
+private:
+    const string _name;
+    size_t _price;
+    size_t _count;
+};
+string Product::getName()
+{
+    return _name;
+}
+size_t Product::getPrice()
+{
+    return _price;
+}
+size_t Product::getCount()
+{
+    return _count;
+}
+void Product::setPrice(size_t price)
+{
+    _price = price;
+}
+void Product::delivery(size_t count)
+{
+    _count = _count + count;
+}
+void Product::write_off(size_t count)
+{
+    if (_count >= count)
+        _count = _count - count;
+    else
+        _count = 0;
+}
+bool Product::isProduct(size_t count)
+{
+    if (_count >= count)
+        return true;
+    else
+        return false;
+}
+
+
+class Customer
+{
+public:
+    // Конструктор
+    Customer(const string& name, size_t money):
+        _name(name), _money(money)
+    {}
+    // Конструктор копирования
+    Customer(const Customer& customer):
+        _name(customer._name), _money(customer._money)
+    {}
+    ~Customer() {}
+    inline bool operator==(const Customer& other)
+    {
+        return _name == other._name;
+    }
+
+    // Функции типа: get
+    string getName();     // Получить имя клиета ("Клиент 1", "Клиент 2", ...)
+    size_t getBalans();   // Получить счет пользователя
+
+    // Функции типа: set
+    void to_charge(size_t money);   // Списать средства
+
+    // Функции типа: is
+    bool isBalans(size_t money);   // Проверка счета на наличие необходимых средств
+private:
+    const string _name;
+    size_t _money;
+};
+string Customer::getName()
+{
+    return _name;
+}
+size_t Customer::getBalans()
+{
+    return _money;
+}
+void Customer::to_charge(size_t money)
+{
+    _money = _money - money;
+}
+bool Customer::isBalans(size_t money)
+{
+    if (_money >= money)
+        return true;
+    else
+        return false;
+}
+
+class Self_Checkout
+{
+public:
+    // Конструктор
+    Self_Checkout(const size_t& number) :
+        _number(number)
+    {}
+    // Конструктор копирования
+    Self_Checkout(const Self_Checkout& self_checkout):
+        _number(self_checkout._number)
+    {}
+
+    size_t buyProduct(Customer customer, Product product, size_t count);   // Покупка продукта
+private:
+    const size_t _number;
+};
+size_t Self_Checkout::buyProduct(Customer customer, Product product, size_t count)
+{
+    if (product.isProduct(count))
+    {
+        if (customer.isBalans(product.getPrice() * count))
+        {
+            customer.to_charge(product.getPrice() * count);
+            product.write_off(count);
+            return product.getPrice() * count;
+        }
+        else
+            cout << "На счете клиента недостаточно средств.\nНа счете клиента: " << customer.getBalans() << "\nСтоимость единицы товара: " << product.getPrice() << endl;
+    }
+    else
+        cout << "На складе недостаточно товара.\nВсего на складе: " << product.getCount() << endl;
+    return 0;
+}
+
+class Supermarket
+{
+public:
+    // Конструктор
+    Supermarket(const string& name, size_t money, size_t count_self_checkout) :
+        _name(name), _money(money)
+    {
+        for (size_t i = 0; i < count_self_checkout; i++) self_checkout.push_back(Self_Checkout(i));
+    }
+
+    void addCustomer(Customer _customer);                                                      // Добавить покупателя
+    void deliveryProduct(Product _product, size_t price);                                      // Добавить новый товар
+    void setPriceProduct(Product _product, size_t price);                                      // Изменить цену товара
+    void buyProduct(size_t cash_register, Customer customer, Product product, size_t count);   // Покупка товара
+
+    Product searchProduct(const string name);     // Поиск продукта
+    Customer searchCustomer(const string name);   // Поиск клиента
+private:
+    const string _name;
+    size_t _money;
+    vector<Self_Checkout> self_checkout;
+    vector<Product> product;
+    vector<Customer> customer;
+};
+void Supermarket::addCustomer(Customer _customer)
+{
+    for (int i = 0; i < customer.size(); i++)
+    {
+        if (_customer == customer[i])
+        {
+            cout << _customer.getName() << " уже является клиентом магазина.\n";
+            return;
+        }
+    }
+    customer.push_back(_customer);
+    cout << _customer.getName() << " добавлен в список клиентов.\n";
+}
+void Supermarket::deliveryProduct(Product _product, size_t price)
+{
+    _money = _money - price * _product.getCount();
+    for (int i = 0; i < product.size(); i++)
+    {
+        if (_product == product[i])
+        {
+            product[i].delivery(_product.getCount());
+            cout << "Товар: " << _product.getName() << " уже имелся на складе, новый завоз добавлен к уже существуещему.\n";
+            _product.~Product();
+            return;
+        }
+    }
+    product.push_back(_product);
+    cout << "Товар: " << _product.getName() << " добавлен на склад.\n";
+}
+void Supermarket::setPriceProduct(Product _product, size_t price)
+{
+    if (_product.getName() != "")
+        _product.setPrice(price);
+}
+void Supermarket::buyProduct(size_t cash_register, Customer _customer, Product _product, size_t count)
+{
+    if (_product.getName() != "" && _customer.getName() != "")
+    {
+        // [cash_register - 1] так как в обычной жизни самую первую кассу называют первой
+        if (cash_register <= self_checkout.size())
+            _money = _money + self_checkout[cash_register - 1].buyProduct(_customer, _product, count);
+        else
+            cout << "Нет такой кассы.";
+    }
+}
+Product Supermarket::searchProduct(const string name)
+{
+    for (int i = 0; i < product.size(); i++)
+    {
+        if (name == product[i].getName())
+        {
+            return product[i];
+        }
+    }
+    return Product("", 0, 0);
+}
+Customer Supermarket::searchCustomer(const string name)
+{
+    for (int i = 0; i < customer.size(); i++)
+    {
+        if (name == customer[i].getName())
+        {
+            return customer[i];
+        }
+    }
+    return Customer("", 0);
+}
+
+int main()
+{
+    setlocale(LC_ALL, "ru");
+    
+    Product a = Product("a", 100, 20);
+    Product b = Product("b", 100, 20);
+    Product c = Product("a", 120, 20);
+    Supermarket f = Supermarket("asd", 0, 1);
+    f.deliveryProduct(a, 80);
+    f.deliveryProduct(b, 80);
+    f.deliveryProduct(c, 80);
+}
